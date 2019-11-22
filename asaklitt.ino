@@ -12,7 +12,9 @@
 #include <SD.h>
 #include "DS3231.h"
 
-#define ILLUMINANCE_THR (400)
+#define ILLUMINANCE_THR (500)
+// #define HIGH            (1)
+// #define LOW             (0)
 
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 RTClib RTC;
@@ -22,12 +24,11 @@ Thread taskOne = Thread();
 File logAsklitt;
 
 void taskOneFunc(){
-    static int lifeCntrMs = 0;
+    static bool previousState = LOW; 
+    static bool currentState = LOW;
     static int activeTime = 0;
-    static int currTs = 0;      /* Time in sec since start */
-    static int prevTs = 0;
-
-    currTs = millis() / 1000;   /* get current TS in seconds */
+    static int stopTimer = 0;      /* Time in sec since start */
+    static int startTimer = 0;
 
     /* Read current date and time */
     DateTime now = RTC.now();
@@ -40,10 +41,32 @@ void taskOneFunc(){
 
     /* Read the light sensor to A0 */
     int sensorValue = analogRead(A0);
+
     if (sensorValue < ILLUMINANCE_THR)
     {
-        activeTime += (currTs - prevTs);
-        prevTs = currTs;
+      currentState = HIGH;
+    }
+    else
+    {
+      currentState = LOW;
+    }
+    
+    if (previousState == LOW && currentState == HIGH)
+    {
+      startTimer = millis() / 1000;
+      previousState = HIGH;
+    }
+
+    if (previousState == HIGH && currentState == LOW)
+    {
+      stopTimer = millis() / 1000;
+      activeTime += (stopTimer - startTimer);
+      previousState = LOW;
+
+      lcd.setCursor(12, 1);
+      lcd.write("     ");             /* lightning time since start in seconds */
+      lcd.setCursor(12, 1);
+      lcd.print(activeTime);
     }
 
     // Printing seconds since restart on the first row
@@ -65,10 +88,7 @@ void taskOneFunc(){
     lcd.setCursor(10, 0);
     lcd.print(sensorValue);
 
-    lcd.setCursor(12, 1);
-    lcd.write("     ");             /* lightning time since start in seconds */
-    lcd.setCursor(12, 1);
-    lcd.print(activeTime);
+    
   
   String logString = String("Time: ") 
     + (year < 10 ? "0" : ""  ) + year
@@ -78,7 +98,8 @@ void taskOneFunc(){
     + (minu < 10 ? ":0" : ":") + minu 
     + (seco < 10 ? ":0" : ":") + seco + ","
     + " Light sensor value: " + sensorValue
-    + " Active time (sec): " + activeTime;
+    + " Active time (sec): " + activeTime
+    + " Previous state: " + previousState + " Current state: " + currentState + " startTimer=" + startTimer + " stopTimer=" + stopTimer + "\n";
   
   logAsklitt = SD.open("akaklitt.log", FILE_WRITE);
   
@@ -91,7 +112,8 @@ void taskOneFunc(){
   Serial.print(logString);
 }
 
-void sdCardProgram() {
+void sdCardProgram()
+{
   // SD reader is connected to SPI pins (MISO/MOSI/SCK/CS, 5V pwr)
   // setup sd card variables
   Sd2Card card;
@@ -158,7 +180,8 @@ void sdCardProgram() {
   }
 }
 
-void setup(){
+void setup()
+{
   sdCardProgram();
   
   lcd.begin(16, 2);
@@ -171,8 +194,8 @@ void setup(){
   taskOne.setInterval(1000);   // call taskOne every 1000 ms
 }
 
-void loop(){
-  
+void loop()
+{  
   if (taskOne.shouldRun())
     taskOne.run();
 }
