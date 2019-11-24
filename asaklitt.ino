@@ -12,9 +12,25 @@
 #include <SD.h>
 #include "DS3231.h"
 
-#define ILLUMINANCE_THR (500)
+/**
+ * Constants
+ * 
+ * CdS cell: dark = 1010
+ */
+
+#define ILLUMINANCE_THR   (500)   /* Absolute threshold for CdS cell */
+#define BEAM_OFF_DELTA    (150)   /* CdS cell illuminance delta for 'Torch Beam Off' state detection */
+#define ILLUMINANCE_DARK  (1000)  /* Value for background noise */
 // #define HIGH            (1)
 // #define LOW             (0)
+
+/**
+ * Module globals
+ */
+
+/**
+ * 
+ */
 
 LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 RTClib RTC;
@@ -24,11 +40,13 @@ Thread taskOne = Thread();
 File logAsklitt;
 
 void taskOneFunc(){
-    static bool previousState = LOW; 
+    static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
     static bool currentState = LOW;
-    static int activeTime = 0;
-    static int stopTimer = 0;      /* Time in sec since start */
-    static int startTimer = 0;
+    static int activeTime = 0;                              /* Overall time of the beam in HIGH state */
+    static int stopTimer = 0;                               /* Stopwatch start */
+    static int startTimer = 0;                              /* Stopwatch stop */
+    static int dynamicIlluminanceThr = ILLUMINANCE_DARK;    /* Dynamic illuminance threshold, calculated when photocell value difference is greater than BEAM_OFF_DELTA */
+    static int previousSensorValue = 0;                     /* Previous illuminance value */
 
     /* Read current date and time */
     DateTime now = RTC.now();
@@ -42,7 +60,15 @@ void taskOneFunc(){
     /* Read the light sensor to A0 */
     int sensorValue = analogRead(A0);
 
-    if (sensorValue < ILLUMINANCE_THR)
+    /* Update dynamicIlluminanceThr to the value of the last Beam_ON state */
+    if ((sensorValue - previousSensorValue) > BEAM_OFF_DELTA)
+    {
+      dynamicIlluminanceThr = previousSensorValue;
+    }
+
+    /* Detect the torch beam state */
+    //if (sensorValue < ILLUMINANCE_THR)
+    if (sensorValue < dynamicIlluminanceThr)
     {
       currentState = HIGH;
     }
@@ -51,12 +77,14 @@ void taskOneFunc(){
       currentState = LOW;
     }
     
+    /* Start the stopwatch if torch has been switched ON */
     if (previousState == LOW && currentState == HIGH)
     {
       startTimer = millis() / 1000;
       previousState = HIGH;
     }
 
+    /* Stop the stopwatch when the lights are gone */
     if (previousState == HIGH && currentState == LOW)
     {
       stopTimer = millis() / 1000;
@@ -70,26 +98,29 @@ void taskOneFunc(){
     }
 
     // Printing seconds since restart on the first row
-    lcd.setCursor(3, 0);
-    lcd.write("     ");             /* date 5 symbols, e.g. "11/21" */
-    lcd.setCursor(3, 0);
-    lcd.print(mnth);
-    lcd.print(day);
+    // lcd.setCursor(3, 0);
+    // lcd.write("     ");             /* date 5 symbols, e.g. "11/21" */
+    // lcd.setCursor(3, 0);
+    // lcd.print(mnth);
+    // lcd.print(day);
+    lcd.setCursor(0, 0);
+    lcd.write("      ");
+    lcd.setCursor(0, 0);
+    lcd.print(dynamicIlluminanceThr);
 
-    lcd.setCursor(3, 1);
-    lcd.write("        ");          /* time 8 symbols, e.g. "00:32:56" */
-    lcd.setCursor(3, 1);
-    lcd.print(hour);
-    lcd.print(minu);
-    lcd.print(seco);
+    // lcd.setCursor(3, 1);
+    // lcd.write("        ");          /* time 8 symbols, e.g. "00:32:56" */
+    // lcd.setCursor(3, 1);
+    // lcd.print(hour);
+    // lcd.print(minu);
+    // lcd.print(seco);
 
     lcd.setCursor(10, 0);
     lcd.write("    ");              /* light sensor value */
     lcd.setCursor(10, 0);
     lcd.print(sensorValue);
 
-    
-  
+  /* Prepare the log string (for Serial and SD card logs */
   String logString = String("Time: ") 
     + (year < 10 ? "0" : ""  ) + year
     + (mnth < 10 ? "/0" : "/") + mnth
@@ -97,11 +128,12 @@ void taskOneFunc(){
     + (hour < 10 ? " 0" : " ") + hour
     + (minu < 10 ? ":0" : ":") + minu 
     + (seco < 10 ? ":0" : ":") + seco + ","
-    + " Light sensor value: " + sensorValue
-    + " Active time (sec): " + activeTime
-    + " Previous state: " + previousState + " Current state: " + currentState + " startTimer=" + startTimer + " stopTimer=" + stopTimer + "\n";
+    + " Light sensor value: " + sensorValue + " Active time (sec): " + activeTime
+    + " Previous state: " + previousState + " Current state: " + currentState 
+    + " startTimer=" + startTimer + " stopTimer=" + stopTimer 
+    + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + "\n";
   
-  logAsklitt = SD.open("akaklitt.log", FILE_WRITE);
+  logAsklitt = SD.open("asaklitt.log", FILE_WRITE);
   
   if(logAsklitt)
   {
@@ -110,6 +142,8 @@ void taskOneFunc(){
   }
 
   Serial.print(logString);
+
+  previousSensorValue = sensorValue;
 }
 
 void sdCardProgram()
@@ -189,6 +223,13 @@ void setup()
   lcd.write("T: ");
   lcd.setCursor(0, 1);
   lcd.write("D: ");
+
+  logAsklitt = SD.open("asaklitt.log", FILE_WRITE);
+  if(logAsklitt)
+  {
+    logAsklitt.print("--- Starting new log entry ---\n");
+    logAsklitt.close();
+  }
 
   taskOne.onRun(taskOneFunc);
   taskOne.setInterval(1000);   // call taskOne every 1000 ms
