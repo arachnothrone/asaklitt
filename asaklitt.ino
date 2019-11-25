@@ -19,7 +19,7 @@
  */
 
 #define ILLUMINANCE_THR   (500)   /* Absolute threshold for CdS cell */
-#define BEAM_OFF_DELTA    (150)   /* CdS cell illuminance delta for 'Torch Beam Off' state detection */
+#define BEAM_OFF_DELTA    (100)   /* CdS cell illuminance delta for 'Torch Beam Off' state detection */
 #define ILLUMINANCE_DARK  (1000)  /* Value for background noise */
 // #define HIGH            (1)
 // #define LOW             (0)
@@ -47,6 +47,8 @@ void taskOneFunc(){
     static int startTimer = 0;                              /* Stopwatch stop */
     static int dynamicIlluminanceThr = ILLUMINANCE_DARK;    /* Dynamic illuminance threshold, calculated when photocell value difference is greater than BEAM_OFF_DELTA */
     static int previousSensorValue = 0;                     /* Previous illuminance value */
+    static int firstCycle = true;
+    static int activeTimeProgressInd = 0;                   /* Active time progress indicator (global indicator updated in real time */
 
     /* Read current date and time */
     DateTime now = RTC.now();
@@ -60,12 +62,20 @@ void taskOneFunc(){
     /* Read the light sensor to A0 */
     int sensorValue = analogRead(A0);
 
-    /* Update dynamicIlluminanceThr to the value of the last Beam_ON state */
-    if ((sensorValue - previousSensorValue) > BEAM_OFF_DELTA)
+    /* Update dynamicIlluminanceThr to the value of the last Beam_ON state (only skip for the first cycle) */
+    if (firstCycle == false)
     {
-      dynamicIlluminanceThr = previousSensorValue;
+      if ((sensorValue - previousSensorValue) > BEAM_OFF_DELTA)
+      {
+        dynamicIlluminanceThr = previousSensorValue;
+      }
     }
-
+    else
+    {
+      dynamicIlluminanceThr = sensorValue - 100;
+      firstCycle = false;
+    }
+    
     /* Detect the torch beam state */
     //if (sensorValue < ILLUMINANCE_THR)
     if (sensorValue < dynamicIlluminanceThr)
@@ -90,11 +100,20 @@ void taskOneFunc(){
       stopTimer = millis() / 1000;
       activeTime += (stopTimer - startTimer);
       previousState = LOW;
-
       lcd.setCursor(12, 1);
-      lcd.write("     ");             /* lightning time since start in seconds */
+      lcd.write("     ");
       lcd.setCursor(12, 1);
       lcd.print(activeTime);
+    }
+
+    /* Print progress since stopwatch start */
+    if (currentState == HIGH)
+    {
+      activeTimeProgressInd = (millis() / 1000 - startTimer) + activeTime;
+      lcd.setCursor(12, 1);
+      lcd.write("     ");
+      lcd.setCursor(12, 1);
+      lcd.print(activeTimeProgressInd);
     }
 
     // Printing seconds since restart on the first row
@@ -128,7 +147,7 @@ void taskOneFunc(){
     + (hour < 10 ? " 0" : " ") + hour
     + (minu < 10 ? ":0" : ":") + minu 
     + (seco < 10 ? ":0" : ":") + seco + ","
-    + " Light sensor value: " + sensorValue + " Active time (sec): " + activeTime
+    + " Light sensor value: " + sensorValue + " Active time (sec): " + activeTimeProgressInd
     + " Previous state: " + previousState + " Current state: " + currentState 
     + " startTimer=" + startTimer + " stopTimer=" + stopTimer 
     + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + "\n";
