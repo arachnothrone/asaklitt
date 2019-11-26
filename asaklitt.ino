@@ -11,6 +11,7 @@
 #include <SPI.h>
 #include <SD.h>
 #include "DS3231.h"
+#include <Wire.h>
 
 /**
  * Constants
@@ -235,6 +236,7 @@ void sdCardProgram()
 
 void setup()
 {
+  Wire.begin();
   sdCardProgram();
   
   lcd.begin(16, 2);
