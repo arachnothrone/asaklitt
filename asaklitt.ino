@@ -220,17 +220,7 @@ void sdCardProgram()
     delay(1000);
     lcd.clear();
 
-    SD.begin();   // (CS_pin) -> sd card initialization
-    // logfile = SD.open("akaklitt.log", FILE_WRITE);    // create log file on the card
-    // if (logfile){
-    //   logfile.println("Starting log...");
-    //   logfile.close();
-    //   lcd.print("LOG CREATED [OK]");
-    // }
-    // else
-    //   lcd.print("FILE ERROR [01]");
-    
-    // delay(2000);
+    SD.begin();
   }
 }
 
@@ -250,6 +240,18 @@ void setup()
   {
     logAsklitt.print("--- Starting new log entry ---\n");
     logAsklitt.close();
+  }
+  else
+  {
+    lcd.setCursor(3, 0);
+    lcd.print("FILE_ERR_01");
+    delay(2000);
+    lcd.setCursor(3, 0);
+    lcd.print("           ");
+
+    /* Error indicator */
+    lcd.setCursor(15, 0);
+    lcd.print("x");
   }
 
   taskOne.onRun(taskOneFunc);
