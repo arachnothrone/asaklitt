@@ -4,6 +4,8 @@
  * Asaklitt rear : 2 AAA NiMH batteries
  * 
  * arachnothrone 2019
+ *   //rtc.adjust(DateTime(F(__DATE__), F(__TIME__))); // UNCOMMENT TO SET TIME & DATE TO THAT AT COMPILATION.
+ *   //rtc.adjust(DateTime(2019, 9, 30, 11, 44, 59 )); // UNCOMMENT TO SET TIME & DATE MANUALLY. (YEAR, MONTH, DAY, 24-HOUR, MINUTE, SECOND)
  */
 
 #include <LiquidCrystal.h>
