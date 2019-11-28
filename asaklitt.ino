@@ -46,12 +46,30 @@ void taskOneFunc(){
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
     static bool currentState = LOW;
     static int activeTime = 0;                              /* Overall time of the beam in HIGH state */
-    static int stopTimer = 0;                               /* Stopwatch start */
-    static int startTimer = 0;                              /* Stopwatch stop */
+    static unsigned int stopTimer = 0;                               /* Stopwatch start */
+    static unsigned int startTimer = 0;                              /* Stopwatch stop */
     static int dynamicIlluminanceThr = ILLUMINANCE_DARK;    /* Dynamic illuminance threshold, calculated when photocell value difference is greater than BEAM_OFF_DELTA */
     static int previousSensorValue = 0;                     /* Previous illuminance value */
     static int firstCycle = true;
-    static int activeTimeProgressInd = 0;                   /* Active time progress indicator (global indicator updated in real time */
+    static unsigned int activeTimeProgressInd = 0;                   /* Active time progress indicator (global indicator updated in real time */
+
+    /* Execution time analysis */
+    static unsigned long fullTaskTimerStart = 0;
+    static unsigned long fullTaskTimerStop = 0;
+    static unsigned int fullTaskTimerVal = 0;
+    static unsigned long logTaskTimerStart = 0;
+    static unsigned long logTaskTimerStop = 0;
+    static unsigned int logTaskTimerVal = 0;
+    static unsigned long lcdTaskTimerStart = 0;
+    static unsigned long lcdTaskTimerStop = 0;
+    static unsigned int  lcdTaskTimerVal = 0;
+
+    fullTaskTimerVal = fullTaskTimerStop - fullTaskTimerStart;
+    logTaskTimerVal = logTaskTimerStop - logTaskTimerStart;
+    lcdTaskTimerVal = lcdTaskTimerStop - lcdTaskTimerStart;
+
+    fullTaskTimerStart = micros();
+
 
     /* Read current date and time */
     DateTime now = RTC.now();
@@ -103,9 +121,9 @@ void taskOneFunc(){
       stopTimer = millis() / 1000;
       activeTime += (stopTimer - startTimer);
       previousState = LOW;
-      lcd.setCursor(12, 1);
-      lcd.write("     ");
-      lcd.setCursor(12, 1);
+      lcd.setCursor(10, 1);
+      lcd.write("      ");
+      lcd.setCursor(10, 1);
       lcd.print(activeTime);
     }
 
@@ -125,6 +143,7 @@ void taskOneFunc(){
     // lcd.setCursor(3, 0);
     // lcd.print(mnth);
     // lcd.print(day);
+    lcdTaskTimerStart = micros();
     lcd.setCursor(0, 0);
     lcd.write("      ");
     lcd.setCursor(0, 0);
@@ -141,6 +160,7 @@ void taskOneFunc(){
     lcd.write("    ");              /* light sensor value */
     lcd.setCursor(10, 0);
     lcd.print(sensorValue);
+    lcdTaskTimerStop = micros();
 
   /* Prepare the log string (for Serial and SD card logs */
   String logString = String("Time: ") 
@@ -153,8 +173,9 @@ void taskOneFunc(){
     + " Light sensor value: " + sensorValue + " Active time (sec): " + activeTimeProgressInd
     + " Previous state: " + previousState + " Current state: " + currentState 
     + " startTimer=" + startTimer + " stopTimer=" + stopTimer 
-    + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + "\n";
+    + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + " FullTask(us): " + fullTaskTimerVal + " SDlogTask(us): " + logTaskTimerVal + " 2xlcdTaskTimerVal(us): " + lcdTaskTimerVal + "\n";
   
+  logTaskTimerStart = micros();
   logAsklitt = SD.open("asaklitt.log", FILE_WRITE);
   
   if(logAsklitt)
@@ -162,10 +183,12 @@ void taskOneFunc(){
     logAsklitt.print(logString);
     logAsklitt.close();
   }
+  logTaskTimerStop = micros();
 
   Serial.print(logString);
 
   previousSensorValue = sensorValue;
+  fullTaskTimerStop = micros();
 }
 
 void sdCardProgram()
