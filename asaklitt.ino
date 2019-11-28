@@ -131,9 +131,9 @@ void taskOneFunc(){
     if (currentState == HIGH)
     {
       activeTimeProgressInd = (millis() / 1000 - startTimer) + activeTime;
-      lcd.setCursor(12, 1);
-      lcd.write("     ");
-      lcd.setCursor(12, 1);
+      lcd.setCursor(10, 1);
+      lcd.write("      ");
+      lcd.setCursor(10, 1);
       lcd.print(activeTimeProgressInd);
     }
 
