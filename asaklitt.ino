@@ -68,7 +68,7 @@ void taskOneFunc(){
     logTaskTimerVal = logTaskTimerStop - logTaskTimerStart;
     lcdTaskTimerVal = lcdTaskTimerStop - lcdTaskTimerStart;
 
-    fullTaskTimerStart = micros();
+    fullTaskTimerStart = millis();
 
 
     /* Read current date and time */
@@ -143,7 +143,7 @@ void taskOneFunc(){
     // lcd.setCursor(3, 0);
     // lcd.print(mnth);
     // lcd.print(day);
-    lcdTaskTimerStart = micros();
+    lcdTaskTimerStart = millis();
     lcd.setCursor(0, 0);
     lcd.write("      ");
     lcd.setCursor(0, 0);
@@ -160,7 +160,7 @@ void taskOneFunc(){
     lcd.write("    ");              /* light sensor value */
     lcd.setCursor(10, 0);
     lcd.print(sensorValue);
-    lcdTaskTimerStop = micros();
+    lcdTaskTimerStop = millis();
 
   /* Prepare the log string (for Serial and SD card logs */
   String logString = String("Time: ") 
@@ -173,9 +173,9 @@ void taskOneFunc(){
     + " Light sensor value: " + sensorValue + " Active time (sec): " + activeTimeProgressInd
     + " Previous state: " + previousState + " Current state: " + currentState 
     + " startTimer=" + startTimer + " stopTimer=" + stopTimer 
-    + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + " FullTask(us): " + fullTaskTimerVal + " SDlogTask(us): " + logTaskTimerVal + " 2xlcdTaskTimerVal(us): " + lcdTaskTimerVal + "\n";
+    + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + " FullTask(ms): " + fullTaskTimerVal + " SDlogTask(ms): " + logTaskTimerVal + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal + "\n";
   
-  logTaskTimerStart = micros();
+  logTaskTimerStart = millis();
   logAsklitt = SD.open("asaklitt.log", FILE_WRITE);
   
   if(logAsklitt)
@@ -183,12 +183,12 @@ void taskOneFunc(){
     logAsklitt.print(logString);
     logAsklitt.close();
   }
-  logTaskTimerStop = micros();
+  logTaskTimerStop = millis();
 
   Serial.print(logString);
 
   previousSensorValue = sensorValue;
-  fullTaskTimerStop = micros();
+  fullTaskTimerStop = millis();
 }
 
 void sdCardProgram()
