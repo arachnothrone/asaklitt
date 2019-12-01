@@ -191,6 +191,11 @@ void taskOneFunc(){
   fullTaskTimerStop = millis();
 }
 
+// String logFunction(void* pVarList)
+// {
+//   3;
+// }
+
 void sdCardProgram()
 {
   // SD reader is connected to SPI pins (MISO/MOSI/SCK/CS, 5V pwr)

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Labels</key>
+	<string>Asaklitt rear, mode 1, unfinished, WCET test 08
+Time, seconds
+CdS readings
+sensorVal
+
+main loop execution time
+Time, sec
+Task ET, ms
+fullTaskExec
+Due to longer SD_Task ET every ~20 sec
+Increased SD_Task, Period ~= 4700 sec (79 min)
+period ~= 2500 sec (41 min)
+
+sdLogTaskExec
+
+Pure main loop ET without SD_Task ET
+mainLoop netto
+</string>
+	<key>Text</key>
+	<string></string>
+</dict>
+</plist>
