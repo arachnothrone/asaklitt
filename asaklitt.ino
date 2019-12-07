@@ -31,7 +31,7 @@
  * Module globals
  */
 
-static String   GV_LogFileName = "ashhmmss.txt";
+static String   GV_LogFileName = "asddhhmm.txt";    /* File name format: "asDDHHMM.txt" -> asaklitt, day, hours, minutes */
 static bool     GV_LogFileErrorIndicator = false;
 
 /**
@@ -165,7 +165,7 @@ void taskOneFunc(){
     lcd.print(sensorValue);
     lcdTaskTimerStop = millis();
 
-  /* Prepare the log string (for Serial and SD card logs */
+  /* Prepare the log strings (for Serial and SD card logs */
   String logString = String("Time: ") 
     + (year < 10 ? "0" : ""  ) + year
     + (mnth < 10 ? "/0" : "/") + mnth
@@ -178,6 +178,25 @@ void taskOneFunc(){
     + " startTimer=" + startTimer + " stopTimer=" + stopTimer 
     + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + " FullTask(ms): " + fullTaskTimerVal + " SDlogTask(ms): " + logTaskTimerVal + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal + "\n";
   
+  String logStringFile = String("TS:")
+    + year
+    + (mnth < 10 ? "/0" : "/") + mnth
+    + (day  < 10 ? "/0" : "/") + day
+    + (hour < 10 ? "_0" : "_") + hour
+    + (minu < 10 ? ":0" : ":") + minu 
+    + (seco < 10 ? ":0" : ":") + seco + " " 
+    + sensorValue + " "
+    + activeTimeProgressInd + " " 
+    + previousState + " "
+    + currentState + " "
+    + startTimer + " "
+    + stopTimer + " "
+    + dynamicIlluminanceThr + " "
+    + fullTaskTimerVal + " "
+    + logTaskTimerVal + " "
+    + lcdTaskTimerVal  + " "
+    + "\n";
+  
   logTaskTimerStart = millis();
   if (GV_LogFileErrorIndicator != true)
   {
@@ -185,7 +204,7 @@ void taskOneFunc(){
     
     if(logAsklitt)
     {
-      logAsklitt.print(logString);
+      logAsklitt.print(logStringFile);
       logAsklitt.close();
     }
     else
@@ -198,7 +217,6 @@ void taskOneFunc(){
   logTaskTimerStop = millis();
 
   Serial.print(logString);
-  //Serial.print(LOG_FileName);
 
   previousSensorValue = sensorValue;
   fullTaskTimerStop = millis();
@@ -279,18 +297,21 @@ void setup()
   lcd.write("D: ");
 
   DateTime now = RTC.now();
-  int hr = now.hour();
-  int mn = now.minute();
-  int sc = now.second();
+  int dd = now.day();
+  int hh = now.hour();
+  int mm = now.minute();
+  // int sc = now.second();
   GV_LogFileName = String("as") + 
-    + (hr < 10 ? "0" : "") + hr
-    + (mn < 10 ? "0" : "") + mn 
-    + (sc < 10 ? "0" : "") + sc
+    + (dd < 10 ? "0" : "") + dd
+    + (hh < 10 ? "0" : "") + hh
+    + (mm < 10 ? "0" : "") + mm 
+  //  + (sc < 10 ? "0" : "") + sc
     + ".txt";
   logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
   if(logAsklitt)
   {
     logAsklitt.print("--- Starting new log entry ---\n");
+    logAsklitt.print("Time, Light_sensor_value, Active_time_(sec), Previous_state, Current_state, startTimer, stopTimer, dynamicIlluminanceThr, FullTask(ms), SDlogTask(ms), 2xLcdTaskTimerVal(ms)\n");
     logAsklitt.close();
   }
   else
