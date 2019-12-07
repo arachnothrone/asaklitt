@@ -31,6 +31,9 @@
  * Module globals
  */
 
+static String   GV_LogFileName = "ashhmmss.txt";
+static bool     GV_LogFileErrorIndicator = false;
+
 /**
  * 
  */
@@ -176,16 +179,26 @@ void taskOneFunc(){
     + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + " FullTask(ms): " + fullTaskTimerVal + " SDlogTask(ms): " + logTaskTimerVal + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal + "\n";
   
   logTaskTimerStart = millis();
-  logAsklitt = SD.open("asaklitt.log", FILE_WRITE);
-  
-  if(logAsklitt)
+  if (GV_LogFileErrorIndicator != true)
   {
-    logAsklitt.print(logString);
-    logAsklitt.close();
+    logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
+    
+    if(logAsklitt)
+    {
+      logAsklitt.print(logString);
+      logAsklitt.close();
+    }
+    else
+    {
+      /* Error indicator */
+      lcd.setCursor(15, 0);
+      lcd.print("*");
+    }
   }
   logTaskTimerStop = millis();
 
   Serial.print(logString);
+  //Serial.print(LOG_FileName);
 
   previousSensorValue = sensorValue;
   fullTaskTimerStop = millis();
@@ -265,7 +278,16 @@ void setup()
   lcd.setCursor(0, 1);
   lcd.write("D: ");
 
-  logAsklitt = SD.open("asaklitt.log", FILE_WRITE);
+  DateTime now = RTC.now();
+  int hr = now.hour();
+  int mn = now.minute();
+  int sc = now.second();
+  GV_LogFileName = String("as") + 
+    + (hr < 10 ? "0" : "") + hr
+    + (mn < 10 ? "0" : "") + mn 
+    + (sc < 10 ? "0" : "") + sc
+    + ".txt";
+  logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
   if(logAsklitt)
   {
     logAsklitt.print("--- Starting new log entry ---\n");
@@ -273,6 +295,7 @@ void setup()
   }
   else
   {
+    GV_LogFileErrorIndicator = true;
     lcd.setCursor(3, 0);
     lcd.print("FILE_ERR_01");
     delay(2000);
@@ -282,6 +305,7 @@ void setup()
     /* Error indicator */
     lcd.setCursor(15, 0);
     lcd.print("x");
+    delay(1000);
   }
 
   taskOne.onRun(taskOneFunc);
