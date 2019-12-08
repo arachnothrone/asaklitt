@@ -8,12 +8,14 @@
  *   //rtc.adjust(DateTime(2019, 9, 30, 11, 44, 59 )); // UNCOMMENT TO SET TIME & DATE MANUALLY. (YEAR, MONTH, DAY, 24-HOUR, MINUTE, SECOND)
  */
 
-#include <LiquidCrystal.h>
+//#include <LiquidCrystal.h>
 #include <Thread.h>
 #include <SPI.h>
 #include <SD.h>
 #include "DS3231.h"
 #include <Wire.h>
+//#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 /**
  * Constants
@@ -26,6 +28,8 @@
 #define ILLUMINANCE_DARK  (1000)  /* Value for background noise */
 // #define HIGH            (1)
 // #define LOW             (0)
+#define SCREEN_WIDTH 128          /* OLED width */
+#define SCREEN_HEIGHT 64          /* OLED height */
 
 /**
  * Module globals
@@ -38,12 +42,16 @@ static bool     GV_LogFileErrorIndicator = false;
  * 
  */
 
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+//LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 RTClib RTC;
 
 Thread taskOne = Thread();
 
 File logAsklitt;
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 void taskOneFunc(){
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
@@ -124,33 +132,33 @@ void taskOneFunc(){
       stopTimer = millis() / 1000;
       activeTime += (stopTimer - startTimer);
       previousState = LOW;
-      lcd.setCursor(10, 1);
-      lcd.write("      ");
-      lcd.setCursor(10, 1);
-      lcd.print(activeTime);
+      // lcd.setCursor(10, 1);
+      // lcd.write("      ");
+      // lcd.setCursor(10, 1);
+      // lcd.print(activeTime);
     }
 
     /* Print progress since stopwatch start */
     if (currentState == HIGH)
     {
       activeTimeProgressInd = (millis() / 1000 - startTimer) + activeTime;
-      lcd.setCursor(10, 1);
-      lcd.write("      ");
-      lcd.setCursor(10, 1);
-      lcd.print(activeTimeProgressInd);
+      // lcd.setCursor(10, 1);
+      // lcd.write("      ");
+      // lcd.setCursor(10, 1);
+      // lcd.print(activeTimeProgressInd);
     }
 
     // Printing seconds since restart on the first row
-    // lcd.setCursor(3, 0);
-    // lcd.write("     ");             /* date 5 symbols, e.g. "11/21" */
-    // lcd.setCursor(3, 0);
-    // lcd.print(mnth);
-    // lcd.print(day);
-    lcdTaskTimerStart = millis();
-    lcd.setCursor(0, 0);
-    lcd.write("      ");
-    lcd.setCursor(0, 0);
-    lcd.print(dynamicIlluminanceThr);
+    // // lcd.setCursor(3, 0);
+    // // lcd.write("     ");             /* date 5 symbols, e.g. "11/21" */
+    // // lcd.setCursor(3, 0);
+    // // lcd.print(mnth);
+    // // lcd.print(day);
+    // lcdTaskTimerStart = millis();
+    // lcd.setCursor(0, 0);
+    // lcd.write("      ");
+    // lcd.setCursor(0, 0);
+    // lcd.print(dynamicIlluminanceThr);
 
     // lcd.setCursor(3, 1);
     // lcd.write("        ");          /* time 8 symbols, e.g. "00:32:56" */
@@ -159,11 +167,17 @@ void taskOneFunc(){
     // lcd.print(minu);
     // lcd.print(seco);
 
-    lcd.setCursor(10, 0);
-    lcd.write("    ");              /* light sensor value */
-    lcd.setCursor(10, 0);
-    lcd.print(sensorValue);
+    // lcd.setCursor(10, 0);
+    // lcd.write("    ");              /* light sensor value */
+    // lcd.setCursor(10, 0);
+    // lcd.print(sensorValue);
+        //display.clearDisplay();
+    //display.setTextSize(2);
+    display.setCursor(0,1); 
+    //display.setTextColor(SSD1306_WHITE);
+    display.print(sensorValue);
     lcdTaskTimerStop = millis();
+
 
   /* Prepare the log strings (for Serial and SD card logs */
   String logString = String("Time: ") 
@@ -210,8 +224,8 @@ void taskOneFunc(){
     else
     {
       /* Error indicator */
-      lcd.setCursor(15, 0);
-      lcd.print("*");
+      // lcd.setCursor(15, 0);
+      // lcd.print("*");
     }
   }
   logTaskTimerStop = millis();
@@ -235,18 +249,33 @@ void sdCardProgram()
   SdVolume volume;
   SdFile root;
   
-  lcd.begin(16, 2);
-  lcd.setCursor(0, 0);
-  lcd.write("SD Card Init...");
-  lcd.setCursor(0, 1);
+  display.clearDisplay();
+  display.setTextSize(2);
+  display.setCursor(0,0); 
+  display.setTextColor(SSD1306_WHITE);
+  display.print("SD Card Init...\n");
+  // display.println(0xDEADBEEF, HEX);
+
+  display.display();
+
+  // lcd.begin(16, 2);
+  // lcd.setCursor(0, 0);
+  // lcd.write("SD Card Init...");
+  // lcd.setCursor(0, 1);
   if (!card.init(SPI_HALF_SPEED, 4))
-    lcd.write("Init failed");
+  {
+    // lcd.write("Init failed");
+    display.println("Init failed");
+  }
   else
-    lcd.write("Init OK");
+  {
+    // lcd.write("Init OK");
+    display.println("Init OK");
+  }
   delay(500);
   //char cardType[10];
   String cardType = "xxxx";
-  lcd.setCursor(0, 1);
+  // lcd.setCursor(0, 1);
   switch (card.type()) {
     case SD_CARD_TYPE_SD1:
       cardType = "SD1";
@@ -260,26 +289,30 @@ void sdCardProgram()
     default:
       cardType = "Unknown";
   }
-  lcd.print("Card Type: ");
-  lcd.print(cardType);
+  // lcd.print("Card Type: ");
+  // lcd.print(cardType);
+  display.println("Card Type:");
+  display.println(cardType);
   delay(500);
   if (!volume.init(card)) {
-    lcd.print("No FAT16/32\npartition.");
+    // lcd.print("No FAT16/32\npartition.");
+    display.print("No FAT16/32\npartition.");
     delay(3000);
   }
   else {
-    lcd.clear();
-    lcd.setCursor(0, 0);
+    // lcd.clear();
+    // lcd.setCursor(0, 0);
     //lcd.autoscroll();
     uint32_t volumeSize;
     volumeSize = volume.blocksPerCluster();    // clusters are collections of blocks
     volumeSize *= volume.clusterCount();       // we'll have a lot of clusters
     volumeSize /= 2;                           // SD card blocks are always 512 bytes (2 blocks are 1KB)
-    lcd.print("Vol. size (Kb):");
-    lcd.setCursor(0, 1);
-    lcd.print(volumeSize);
+    // lcd.print("Vol. size (Kb):");
+    // lcd.setCursor(0, 1);
+    // lcd.print(volumeSize);
     delay(1000);
-    lcd.clear();
+    // lcd.clear();
+    // display.clearDisplay();
 
     SD.begin();
   }
@@ -288,13 +321,16 @@ void sdCardProgram()
 void setup()
 {
   Wire.begin();
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
+  display.clearDisplay();
+
   sdCardProgram();
   
-  lcd.begin(16, 2);
-  lcd.setCursor(0, 0);
-  lcd.write("T: ");
-  lcd.setCursor(0, 1);
-  lcd.write("D: ");
+  // lcd.begin(16, 2);
+  // lcd.setCursor(0, 0);
+  // lcd.write("T: ");
+  // lcd.setCursor(0, 1);
+  // lcd.write("D: ");
 
   DateTime now = RTC.now();
   int dd = now.day();
@@ -317,15 +353,21 @@ void setup()
   else
   {
     GV_LogFileErrorIndicator = true;
-    lcd.setCursor(3, 0);
-    lcd.print("FILE_ERR_01");
+    // lcd.setCursor(3, 0);
+    // lcd.print("FILE_ERR_01");
+    display.print("FILE_ERR_01");
     delay(2000);
-    lcd.setCursor(3, 0);
-    lcd.print("           ");
+    // lcd.setCursor(3, 0);
+    // lcd.print("           ");
 
     /* Error indicator */
-    lcd.setCursor(15, 0);
-    lcd.print("x");
+    // lcd.setCursor(15, 0);
+    // lcd.print("x");
+    display.clearDisplay();
+    display.setTextSize(2);
+    display.setCursor(9, 0); 
+    display.setTextColor(SSD1306_WHITE);
+    display.print("x");
     delay(1000);
   }
 
