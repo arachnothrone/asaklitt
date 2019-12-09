@@ -15,7 +15,8 @@
 #include "DS3231.h"
 #include <Wire.h>
 //#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+//#include <Adafruit_SSD1306.h>
+#include <U8x8lib.h>
 
 /**
  * Constants
@@ -49,9 +50,10 @@ Thread taskOne = Thread();
 
 File logAsklitt;
 
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-#define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+/* Declaration for an SSD1306 display connected to I2C (SDA, SCL pins) */
+// #define OLED_RESET     4 // Reset pin # (or -1 if sharing Arduino reset pin)
+// Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+U8X8_SH1106_128X64_NONAME_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
 
 void taskOneFunc(){
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
@@ -173,9 +175,12 @@ void taskOneFunc(){
     // lcd.print(sensorValue);
         //display.clearDisplay();
     //display.setTextSize(2);
-    display.setCursor(0,1); 
-    //display.setTextColor(SSD1306_WHITE);
-    display.print(sensorValue);
+    // display.setCursor(0,1); 
+    // //display.setTextColor(SSD1306_WHITE);
+    // display.print(sensorValue);
+    // oled.drawString(0, 4, "asdf");
+    oled.setCursor(2, 4);
+    oled.print(sensorValue);
     lcdTaskTimerStop = millis();
 
 
@@ -249,14 +254,15 @@ void sdCardProgram()
   SdVolume volume;
   SdFile root;
   
-  display.clearDisplay();
-  display.setTextSize(2);
-  display.setCursor(0,0); 
-  display.setTextColor(SSD1306_WHITE);
-  display.print("SD Card Init...\n");
+  // display.clearDisplay();
+  // display.setTextSize(2);
+  // display.setCursor(0,0); 
+  // display.setTextColor(SSD1306_WHITE);
+  // display.print("SD Card Init...\n");
   // display.println(0xDEADBEEF, HEX);
+  oled.drawString(0, 1, "SD Card Init...");
 
-  display.display();
+  //display.display();
 
   // lcd.begin(16, 2);
   // lcd.setCursor(0, 0);
@@ -265,12 +271,14 @@ void sdCardProgram()
   if (!card.init(SPI_HALF_SPEED, 4))
   {
     // lcd.write("Init failed");
-    display.println("Init failed");
+    //display.println("Init failed");
+    oled.drawString(0, 1, "SD Init Failed.");
   }
   else
   {
     // lcd.write("Init OK");
-    display.println("Init OK");
+    //display.println("Init OK");
+    oled.drawString(0, 1, "SD Init OK.");
   }
   delay(500);
   //char cardType[10];
@@ -291,12 +299,16 @@ void sdCardProgram()
   }
   // lcd.print("Card Type: ");
   // lcd.print(cardType);
-  display.println("Card Type:");
-  display.println(cardType);
+  // display.println("Card Type:");
+  // display.println(cardType);
+  oled.drawString(0, 2, "Card Type: ");
+  oled.setCursor(11, 2);
+  oled.print(cardType);
   delay(500);
   if (!volume.init(card)) {
     // lcd.print("No FAT16/32\npartition.");
-    display.print("No FAT16/32\npartition.");
+    //
+    oled.drawString(0, 1, "No FAT16/32\npartition.");
     delay(3000);
   }
   else {
@@ -321,8 +333,11 @@ void sdCardProgram()
 void setup()
 {
   Wire.begin();
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
-  display.clearDisplay();
+  // display.begin(SSD1306_SWITCHCAPVCC, 0x3c);
+  // display.clearDisplay();
+  oled.begin();
+  oled.setPowerSave(0);
+  oled.setFont(u8x8_font_chroma48medium8_r);
 
   sdCardProgram();
   
@@ -355,7 +370,9 @@ void setup()
     GV_LogFileErrorIndicator = true;
     // lcd.setCursor(3, 0);
     // lcd.print("FILE_ERR_01");
-    display.print("FILE_ERR_01");
+    // display.print("FILE_ERR_01");
+    oled.drawString(0,0,"FILE_ERROR_01");
+    //u8x8.refreshDisplay();		// only required for SSD1606/7
     delay(2000);
     // lcd.setCursor(3, 0);
     // lcd.print("           ");
@@ -363,11 +380,12 @@ void setup()
     /* Error indicator */
     // lcd.setCursor(15, 0);
     // lcd.print("x");
-    display.clearDisplay();
-    display.setTextSize(2);
-    display.setCursor(9, 0); 
-    display.setTextColor(SSD1306_WHITE);
-    display.print("x");
+    // display.clearDisplay();
+    // display.setTextSize(2);
+    // display.setCursor(9, 0); 
+    // display.setTextColor(SSD1306_WHITE);
+    // display.print("x");
+    oled.drawString(9, 0, "x");
     delay(1000);
   }
 
