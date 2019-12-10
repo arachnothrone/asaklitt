@@ -14,6 +14,7 @@
 #include <SD.h>
 #include "DS3231.h"
 #include <Wire.h>
+#include <U8x8lib.h>
 
 /**
  * Constants
@@ -44,6 +45,12 @@ RTClib RTC;
 Thread taskOne = Thread();
 
 File logAsklitt;
+
+//U8X8_SSD1306_128X64_NONAME_SW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
+//U8X8_SSD1306_128X64_NONAME_SW_I2C oled(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);   // OLEDs without Reset of the Display
+//U8X8_SSD1306_128X64_NONAME_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
+//U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C oled(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8X8_SSD1306_128X32_UNIVISION_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE, /* clock=*/ SCL, /* data=*/ SDA);   // pin remapping with ESP8266 HW I2C
 
 void taskOneFunc(){
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
@@ -163,6 +170,8 @@ void taskOneFunc(){
     lcd.write("    ");              /* light sensor value */
     lcd.setCursor(10, 0);
     lcd.print(sensorValue);
+    // oled.setCursor(2, 4);
+    // oled.print(sensorValue);
     lcdTaskTimerStop = millis();
 
   /* Prepare the log strings (for Serial and SD card logs */
@@ -234,15 +243,23 @@ void sdCardProgram()
   Sd2Card card;
   SdVolume volume;
   SdFile root;
+
+  // oled.drawString(0, 1, "SD Card Init...");
   
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
   lcd.write("SD Card Init...");
   lcd.setCursor(0, 1);
   if (!card.init(SPI_HALF_SPEED, 4))
+  {
     lcd.write("Init failed");
+    // oled.drawString(0, 1, "SD Init Failed.");
+  }
   else
+  {
     lcd.write("Init OK");
+    // oled.drawString(0, 1, "SD Init OK.");
+  }
   delay(500);
   //char cardType[10];
   String cardType = "xxxx";
@@ -262,9 +279,13 @@ void sdCardProgram()
   }
   lcd.print("Card Type: ");
   lcd.print(cardType);
+  // oled.drawString(0, 2, "Card Type: ");
+  // oled.setCursor(11, 2);
+  // oled.print(cardType);
   delay(500);
   if (!volume.init(card)) {
     lcd.print("No FAT16/32\npartition.");
+    // oled.drawString(0, 1, "No FAT16/32\npartition.");
     delay(3000);
   }
   else {
@@ -288,6 +309,11 @@ void sdCardProgram()
 void setup()
 {
   Wire.begin();
+  //Serial.begin(9600);
+  oled.begin();
+  oled.setPowerSave(0);
+  oled.setFont(u8x8_font_chroma48medium8_r);
+
   sdCardProgram();
   
   lcd.begin(16, 2);
@@ -319,6 +345,7 @@ void setup()
     GV_LogFileErrorIndicator = true;
     lcd.setCursor(3, 0);
     lcd.print("FILE_ERR_01");
+    oled.drawString(0,0,"FILE_ERROR_01");
     delay(2000);
     lcd.setCursor(3, 0);
     lcd.print("           ");
@@ -326,6 +353,7 @@ void setup()
     /* Error indicator */
     lcd.setCursor(15, 0);
     lcd.print("x");
+    // oled.drawString(9, 0, "x");
     delay(1000);
   }
 
