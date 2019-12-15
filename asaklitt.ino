@@ -12,10 +12,18 @@
 #include <Thread.h>
 #include <SPI.h>
 #include <SD.h>
+
+//#include <Wire.h>
+
+#include "Adafruit_Sensor.h"
+#include "Adafruit_AM2320.h"
+#include "Adafruit_BMP085.h"  // Pressure sensor, I2C (with pullup resistors onboard)
+
 #include "DS3231.h"
-#include <Wire.h>
 #include <U8x8lib.h>
 
+Adafruit_AM2320 temp_humid = Adafruit_AM2320();
+Adafruit_BMP085 bmp;
 /**
  * Constants
  * 
@@ -35,6 +43,8 @@
 static String   GV_LogFileName = "asddhhmm.txt";    /* File name format: "asDDHHMM.txt" -> asaklitt, day, hours, minutes */
 static bool     GV_LogFileErrorIndicator = false;
 
+//const char someString[10] PROGMEM;
+
 /**
  * 
  */
@@ -48,9 +58,10 @@ File logAsklitt;
 
 //U8X8_SSD1306_128X64_NONAME_SW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
 //U8X8_SSD1306_128X64_NONAME_SW_I2C oled(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);   // OLEDs without Reset of the Display
+U8X8_SSD1306_128X32_UNIVISION_SW_I2C oled(/* clock=*/ 5, /* data=*/ 4, /* reset=*/ U8X8_PIN_NONE);   // OLEDs without Reset of the Display
 //U8X8_SSD1306_128X64_NONAME_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
 //U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C oled(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-U8X8_SSD1306_128X32_UNIVISION_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE, /* clock=*/ SCL, /* data=*/ SDA);   // pin remapping with ESP8266 HW I2C
+//U8X8_SSD1306_128X32_UNIVISION_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE, /* clock=*/ SCL, /* data=*/ SDA);   // pin remapping with ESP8266 HW I2C
 
 void taskOneFunc(){
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
@@ -175,6 +186,7 @@ void taskOneFunc(){
     lcdTaskTimerStop = millis();
 
   /* Prepare the log strings (for Serial and SD card logs */
+  // ardprintf("test %d %l %c %s %f", l, k, s, j, f);
   String logString = String("Time: ") 
     + (year < 10 ? "0" : ""  ) + year
     + (mnth < 10 ? "/0" : "/") + mnth
@@ -182,10 +194,17 @@ void taskOneFunc(){
     + (hour < 10 ? " 0" : " ") + hour
     + (minu < 10 ? ":0" : ":") + minu 
     + (seco < 10 ? ":0" : ":") + seco + ","
-    + " Light sensor value: " + sensorValue + " Active time (sec): " + activeTimeProgressInd
-    + " Previous state: " + previousState + " Current state: " + currentState 
-    + " startTimer=" + startTimer + " stopTimer=" + stopTimer 
-    + " dynamicIlluminanceThr=" + dynamicIlluminanceThr + " FullTask(ms): " + fullTaskTimerVal + " SDlogTask(ms): " + logTaskTimerVal + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal + "\n";
+    + " Light sensor value: " + sensorValue 
+    + " Active time (sec): " + activeTimeProgressInd
+    + " Previous state: " + previousState 
+    + " Current state: " + currentState 
+    //+ " startTimer=" + startTimer 
+    //+ " stopTimer=" + stopTimer 
+    //+ " dynamicIlluminanceThr=" + dynamicIlluminanceThr 
+    // + " FullTask(ms): " + fullTaskTimerVal 
+    // + " SDlogTask(ms): " + logTaskTimerVal 
+    // + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal 
+    + "\n";
   
   String logStringFile = String("TS:")
     + year
@@ -226,6 +245,10 @@ void taskOneFunc(){
   logTaskTimerStop = millis();
 
   Serial.print(logString);
+  Serial.print(logStringFile);
+  // Serial.print(seco);
+  oled.setCursor(1, 3);
+  oled.print(seco);
 
   previousSensorValue = sensorValue;
   fullTaskTimerStop = millis();
@@ -308,8 +331,11 @@ void sdCardProgram()
 
 void setup()
 {
-  Wire.begin();
-  //Serial.begin(9600);
+  //Wire.begin();
+  Serial.begin(115200);
+  temp_humid.begin();   // init am2320
+  bmp.begin();          // init bmp180
+  
   oled.begin();
   oled.setPowerSave(0);
   oled.setFont(u8x8_font_chroma48medium8_r);
