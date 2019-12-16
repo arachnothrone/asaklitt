@@ -96,6 +96,8 @@ void taskOneFunc(){
     static unsigned long lcdTaskTimerStop = 0;
     static unsigned int  lcdTaskTimerVal = 0;
 
+    int symbolPositionOffset = 0;                            /* For OLED display setCursor() */
+
     fullTaskTimerVal = fullTaskTimerStop - fullTaskTimerStart;
     logTaskTimerVal = logTaskTimerStop - logTaskTimerStart;
     lcdTaskTimerVal = lcdTaskTimerStop - lcdTaskTimerStart;
@@ -274,6 +276,28 @@ void taskOneFunc(){
     }
   }
   logTaskTimerStop = millis();
+
+  /* Display time and date */
+  // TODO: Add correct switching from 59 to 00, and MSB for values = 0-9 
+  //oled.drawString(0, 0, "              ");
+  symbolPositionOffset = hour < 10 ? 1 : 0;
+  oled.setCursor(0 + symbolPositionOffset, 0);
+  oled.print(hour);
+  oled.print(":");
+  symbolPositionOffset = minu < 10 ? 1 : 0;
+  oled.setCursor(3 + symbolPositionOffset, 0);
+  oled.print(minu);
+  oled.print(":");
+  symbolPositionOffset = seco < 10 ? 1 : 0;
+  oled.setCursor(6 + symbolPositionOffset, 0);
+  oled.print(seco);
+  symbolPositionOffset = day < 10 ? 1 : 0;
+  oled.setCursor(9 + symbolPositionOffset, 0);
+  oled.print(day);
+  oled.print("-");
+  symbolPositionOffset = mnth < 10 ? 1 : 0;
+  oled.setCursor(12 + symbolPositionOffset, 0);
+  oled.print(mnth);
 
   // Serial.print(logString);
   // Serial.print(logStringFile);
