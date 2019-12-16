@@ -56,12 +56,9 @@ Thread taskOne = Thread();
 
 File logAsklitt;
 
-//U8X8_SSD1306_128X64_NONAME_SW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
-//U8X8_SSD1306_128X64_NONAME_SW_I2C oled(/* clock=*/ SCL, /* data=*/ SDA, /* reset=*/ U8X8_PIN_NONE);   // OLEDs without Reset of the Display
-U8X8_SSD1306_128X32_UNIVISION_SW_I2C oled(/* clock=*/ 5, /* data=*/ 4, /* reset=*/ U8X8_PIN_NONE);   // OLEDs without Reset of the Display
+//   U8X8_SSD1306_128X32_UNIVISION_SW_I2C oled(/* clock=*/ 5, /* data=*/ 4, /* reset=*/ U8X8_PIN_NONE);   // OLEDs without Reset of the Display
 //U8X8_SSD1306_128X64_NONAME_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE);
-//U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C oled(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-//U8X8_SSD1306_128X32_UNIVISION_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE, /* clock=*/ SCL, /* data=*/ SDA);   // pin remapping with ESP8266 HW I2C
+U8X8_SSD1306_128X32_UNIVISION_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE, /* clock=*/ SCL, /* data=*/ SDA);   // pin remapping with ESP8266 HW I2C
 
 /** 
  * Returns the number of digits of the integer value
