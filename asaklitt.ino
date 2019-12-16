@@ -8,22 +8,22 @@
  *   //rtc.adjust(DateTime(2019, 9, 30, 11, 44, 59 )); // UNCOMMENT TO SET TIME & DATE MANUALLY. (YEAR, MONTH, DAY, 24-HOUR, MINUTE, SECOND)
  */
 
-#include <LiquidCrystal.h>
+// #include <LiquidCrystal.h>
 #include <Thread.h>
 #include <SPI.h>
 #include <SD.h>
 
-//#include <Wire.h>
+#include <Wire.h>
 
-#include "Adafruit_Sensor.h"
-#include "Adafruit_AM2320.h"
-#include "Adafruit_BMP085.h"  // Pressure sensor, I2C (with pullup resistors onboard)
+// #include "Adafruit_Sensor.h"
+// #include "Adafruit_AM2320.h"
+// #include "Adafruit_BMP085.h"  // Pressure sensor, I2C (with pullup resistors onboard)
 
 #include "DS3231.h"
 #include <U8x8lib.h>
 
-Adafruit_AM2320 temp_humid = Adafruit_AM2320();
-Adafruit_BMP085 bmp;
+// Adafruit_AM2320 temp_humid = Adafruit_AM2320();
+// Adafruit_BMP085 bmp;
 /**
  * Constants
  * 
@@ -49,7 +49,7 @@ static bool     GV_LogFileErrorIndicator = false;
  * 
  */
 
-LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
+// LiquidCrystal lcd(7, 8, 9, 10, 11, 12);
 RTClib RTC;
 
 Thread taskOne = Thread();
@@ -63,6 +63,19 @@ U8X8_SSD1306_128X32_UNIVISION_SW_I2C oled(/* clock=*/ 5, /* data=*/ 4, /* reset=
 //U8G2_SSD1306_128X32_UNIVISION_1_HW_I2C oled(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 //U8X8_SSD1306_128X32_UNIVISION_HW_I2C oled(/* reset=*/ U8X8_PIN_NONE, /* clock=*/ SCL, /* data=*/ SDA);   // pin remapping with ESP8266 HW I2C
 
+/** 
+ * Returns the number of digits of the integer value
+ * param: num   considered to be a positive number within [0..99999]
+ */
+int getNumDigits(int* num)
+{
+  return 
+    *num < 10 ? 1 :
+    *num < 100 ? 2 :
+    *num < 1000 ? 3 :
+    *num < 10000 ? 4 : 5;
+}
+
 void taskOneFunc(){
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
     static bool currentState = LOW;
@@ -70,6 +83,7 @@ void taskOneFunc(){
     static unsigned int stopTimer = 0;                               /* Stopwatch start */
     static unsigned int startTimer = 0;                              /* Stopwatch stop */
     static int dynamicIlluminanceThr = ILLUMINANCE_DARK;    /* Dynamic illuminance threshold, calculated when photocell value difference is greater than BEAM_OFF_DELTA */
+    static int previousDynamicThr = 0;
     static int previousSensorValue = 0;                     /* Previous illuminance value */
     static int firstCycle = true;
     static unsigned int activeTimeProgressInd = 0;                   /* Active time progress indicator (global indicator updated in real time */
@@ -142,88 +156,109 @@ void taskOneFunc(){
       stopTimer = millis() / 1000;
       activeTime += (stopTimer - startTimer);
       previousState = LOW;
-      lcd.setCursor(10, 1);
-      lcd.write("      ");
-      lcd.setCursor(10, 1);
-      lcd.print(activeTime);
+      oled.setCursor(8, 3);
+      oled.print(activeTime);
     }
 
     /* Print progress since stopwatch start */
     if (currentState == HIGH)
     {
       activeTimeProgressInd = (millis() / 1000 - startTimer) + activeTime;
-      lcd.setCursor(10, 1);
-      lcd.write("      ");
-      lcd.setCursor(10, 1);
-      lcd.print(activeTimeProgressInd);
+      oled.setCursor(8, 3);
+      oled.print(activeTimeProgressInd);
     }
 
-    // Printing seconds since restart on the first row
-    // lcd.setCursor(3, 0);
-    // lcd.write("     ");             /* date 5 symbols, e.g. "11/21" */
-    // lcd.setCursor(3, 0);
-    // lcd.print(mnth);
-    // lcd.print(day);
     lcdTaskTimerStart = millis();
-    lcd.setCursor(0, 0);
-    lcd.write("      ");
-    lcd.setCursor(0, 0);
-    lcd.print(dynamicIlluminanceThr);
+    
+    /* Refresh display area if number gets shorter than previous and print value */
+    if (getNumDigits(&previousDynamicThr) > getNumDigits(&dynamicIlluminanceThr))
+    {
+      oled.drawString(8, 2, "    ");
+    }
+    oled.setCursor(8, 2);
+    oled.print(dynamicIlluminanceThr);  /* dynamic illuminance threshold */
 
-    // lcd.setCursor(3, 1);
-    // lcd.write("        ");          /* time 8 symbols, e.g. "00:32:56" */
-    // lcd.setCursor(3, 1);
-    // lcd.print(hour);
-    // lcd.print(minu);
-    // lcd.print(seco);
-
-    lcd.setCursor(10, 0);
-    lcd.write("    ");              /* light sensor value */
-    lcd.setCursor(10, 0);
-    lcd.print(sensorValue);
-    // oled.setCursor(2, 4);
-    // oled.print(sensorValue);
+    /* Refresh display area if number gets shorter than previous and print value */
+    if (getNumDigits(&previousSensorValue) > getNumDigits(&sensorValue))
+    {
+      oled.drawString(8, 1, "    ");
+    }
+    oled.setCursor(8, 1);
+    oled.print(sensorValue);          /* light sensor value */
     lcdTaskTimerStop = millis();
 
-  /* Prepare the log strings (for Serial and SD card logs */
-  // ardprintf("test %d %l %c %s %f", l, k, s, j, f);
-  String logString = String("Time: ") 
-    + (year < 10 ? "0" : ""  ) + year
-    + (mnth < 10 ? "/0" : "/") + mnth
-    + (day  < 10 ? "/0" : "/") + day
-    + (hour < 10 ? " 0" : " ") + hour
-    + (minu < 10 ? ":0" : ":") + minu 
-    + (seco < 10 ? ":0" : ":") + seco + ","
-    + " Light sensor value: " + sensorValue 
-    + " Active time (sec): " + activeTimeProgressInd
-    + " Previous state: " + previousState 
-    + " Current state: " + currentState 
-    //+ " startTimer=" + startTimer 
-    //+ " stopTimer=" + stopTimer 
-    //+ " dynamicIlluminanceThr=" + dynamicIlluminanceThr 
-    // + " FullTask(ms): " + fullTaskTimerVal 
-    // + " SDlogTask(ms): " + logTaskTimerVal 
-    // + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal 
-    + "\n";
+  // /* Prepare the log strings (for Serial and SD card logs */
+  // // ardprintf("test %d %l %c %s %f", l, k, s, j, f);
+  // String logString = String("Time: ") 
+  //   + (year < 10 ? "0" : ""  ) + year
+  //   + (mnth < 10 ? "/0" : "/") + mnth
+  //   + (day  < 10 ? "/0" : "/") + day
+  //   + (hour < 10 ? " 0" : " ") + hour
+  //   + (minu < 10 ? ":0" : ":") + minu 
+  //   + (seco < 10 ? ":0" : ":") + seco + ","
+  //   + " Light sensor value: " + sensorValue 
+  //   + " Active time (sec): " + activeTimeProgressInd
+  //   + " Previous state: " + previousState 
+  //   + " Current state: " + currentState 
+  //   + " startTimer=" + startTimer 
+  //   + " stopTimer=" + stopTimer 
+  //   + " dynamicIlluminanceThr=" + dynamicIlluminanceThr 
+  //   + " FullTask(ms): " + fullTaskTimerVal 
+  //   + " SDlogTask(ms): " + logTaskTimerVal 
+  //   + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal 
+  //   + "\n";
+
+  Serial.print(F("Time: "));
+  Serial.print(year);
+  Serial.print(mnth < 10 ? F("/0") : F("/"));
+  Serial.print(mnth);
+  Serial.print(day < 10 ? F("/0") : F("/"));
+  Serial.print(day);
+  Serial.print(hour < 10 ? F("_0") : F("_"));
+  Serial.print(hour);
+  Serial.print(minu < 10 ? F(":0") : F(":"));
+  Serial.print(minu);
+  Serial.print(seco < 10 ? F(":0") : F(":"));
+  Serial.print(seco);
+  Serial.print(F(" LightSensorValue="));
+  Serial.print(sensorValue);
+  Serial.print(F(" ActiveTime(sec)="));
+  Serial.print(activeTimeProgressInd);
+  Serial.print(F(" PreviousState="));
+  Serial.print(previousState);
+  Serial.print(F(" CurrentState="));
+  Serial.print(currentState);
+  Serial.print(F(" startTimer="));
+  Serial.print(startTimer);
+  Serial.print(F(" stopTimer="));
+  Serial.print(stopTimer);
+  Serial.print(F(" dynamicIlluminanceThr="));
+  Serial.print(dynamicIlluminanceThr);
+  Serial.print(F(" FullTask(ms)="));
+  Serial.print(fullTaskTimerVal);
+  Serial.print(F(" SDlogTask(ms)="));
+  Serial.print(logTaskTimerVal);
+  Serial.print(F(" 2xlcdTaskTimerVal(ms)="));
+  Serial.println(lcdTaskTimerVal);
   
-  String logStringFile = String("TS:")
-    + year
-    + (mnth < 10 ? "/0" : "/") + mnth
-    + (day  < 10 ? "/0" : "/") + day
-    + (hour < 10 ? "_0" : "_") + hour
-    + (minu < 10 ? ":0" : ":") + minu 
-    + (seco < 10 ? ":0" : ":") + seco + " " 
-    + sensorValue + " "
-    + activeTimeProgressInd + " " 
-    + previousState + " "
-    + currentState + " "
-    + startTimer + " "
-    + stopTimer + " "
-    + dynamicIlluminanceThr + " "
-    + fullTaskTimerVal + " "
-    + logTaskTimerVal + " "
-    + lcdTaskTimerVal  + " "
-    + "\n";
+  // String logStringFile = String("TS:")
+  //   + year
+  //   + (mnth < 10 ? "/0" : "/") + mnth
+  //   + (day  < 10 ? "/0" : "/") + day
+  //   + (hour < 10 ? "_0" : "_") + hour
+  //   + (minu < 10 ? ":0" : ":") + minu 
+  //   + (seco < 10 ? ":0" : ":") + seco + " " 
+  //   + sensorValue + " "
+  //   + activeTimeProgressInd + " " 
+  //   + previousState + " "
+  //   + currentState + " "
+  //   + startTimer + " "
+  //   + stopTimer + " "
+  //   + dynamicIlluminanceThr + " "
+  //   + fullTaskTimerVal + " "
+  //   + logTaskTimerVal + " "
+  //   + lcdTaskTimerVal  + " "
+  //   + "\n";
   
   logTaskTimerStart = millis();
   if (GV_LogFileErrorIndicator != true)
@@ -232,32 +267,25 @@ void taskOneFunc(){
     
     if(logAsklitt)
     {
-      logAsklitt.print(logStringFile);
+      //logAsklitt.print(logStringFile);
       logAsklitt.close();
     }
     else
     {
       /* Error indicator */
-      lcd.setCursor(15, 0);
-      lcd.print("*");
+      oled.drawString(15, 3, "*");
     }
   }
   logTaskTimerStop = millis();
 
-  Serial.print(logString);
-  Serial.print(logStringFile);
+  // Serial.print(logString);
+  // Serial.print(logStringFile);
   // Serial.print(seco);
-  oled.setCursor(1, 3);
-  oled.print(seco);
 
   previousSensorValue = sensorValue;
+  previousDynamicThr = dynamicIlluminanceThr;
   fullTaskTimerStop = millis();
 }
-
-// String logFunction(void* pVarList)
-// {
-//   3;
-// }
 
 void sdCardProgram()
 {
@@ -267,26 +295,19 @@ void sdCardProgram()
   SdVolume volume;
   SdFile root;
 
-  // oled.drawString(0, 1, "SD Card Init...");
-  
-  lcd.begin(16, 2);
-  lcd.setCursor(0, 0);
-  lcd.write("SD Card Init...");
-  lcd.setCursor(0, 1);
+  oled.drawString(0, 0, "SD Card Init...");
+
   if (!card.init(SPI_HALF_SPEED, 4))
   {
-    lcd.write("Init failed");
-    // oled.drawString(0, 1, "SD Init Failed.");
+    oled.drawString(0, 1, "SD Init Failed.");
   }
   else
   {
-    lcd.write("Init OK");
-    // oled.drawString(0, 1, "SD Init OK.");
+    oled.drawString(0, 1, "SD Init OK.");
   }
   delay(500);
   //char cardType[10];
-  String cardType = "xxxx";
-  lcd.setCursor(0, 1);
+  String cardType = "----";
   switch (card.type()) {
     case SD_CARD_TYPE_SD1:
       cardType = "SD1";
@@ -298,32 +319,27 @@ void sdCardProgram()
       cardType = "SDHC";
       break;
     default:
-      cardType = "Unknown";
+      cardType = "??";
   }
-  lcd.print("Card Type: ");
-  lcd.print(cardType);
-  // oled.drawString(0, 2, "Card Type: ");
-  // oled.setCursor(11, 2);
-  // oled.print(cardType);
-  delay(500);
+  oled.drawString(0, 2, "Card Type: ");
+  oled.setCursor(11, 2);
+  oled.print(cardType);
+  delay(900);
   if (!volume.init(card)) {
-    lcd.print("No FAT16/32\npartition.");
-    // oled.drawString(0, 1, "No FAT16/32\npartition.");
+    oled.drawString(0, 3, "No FAT partition");
     delay(3000);
+    oled.clear();
   }
   else {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    //lcd.autoscroll();
+    oled.clear();
     uint32_t volumeSize;
     volumeSize = volume.blocksPerCluster();    // clusters are collections of blocks
     volumeSize *= volume.clusterCount();       // we'll have a lot of clusters
     volumeSize /= 2;                           // SD card blocks are always 512 bytes (2 blocks are 1KB)
-    lcd.print("Vol. size (Kb):");
-    lcd.setCursor(0, 1);
-    lcd.print(volumeSize);
+    oled.print("Vol. size (Kb):\n");
+    oled.print(volumeSize);
     delay(1000);
-    lcd.clear();
+    oled.clear();
 
     SD.begin();
   }
@@ -331,22 +347,15 @@ void sdCardProgram()
 
 void setup()
 {
-  //Wire.begin();
+  Wire.begin();
   Serial.begin(115200);
-  temp_humid.begin();   // init am2320
-  bmp.begin();          // init bmp180
-  
   oled.begin();
+
   oled.setPowerSave(0);
   oled.setFont(u8x8_font_chroma48medium8_r);
+  oled.setContrast(11);
 
   sdCardProgram();
-  
-  lcd.begin(16, 2);
-  lcd.setCursor(0, 0);
-  lcd.write("T: ");
-  lcd.setCursor(0, 1);
-  lcd.write("D: ");
 
   DateTime now = RTC.now();
   int dd = now.day();
@@ -369,20 +378,18 @@ void setup()
   else
   {
     GV_LogFileErrorIndicator = true;
-    lcd.setCursor(3, 0);
-    lcd.print("FILE_ERR_01");
-    oled.drawString(0,0,"FILE_ERROR_01");
+    oled.drawString(0, 0, "FILE_ERROR_01");
     delay(2000);
-    lcd.setCursor(3, 0);
-    lcd.print("           ");
+    oled.drawString(0, 0, "             ");
 
     /* Error indicator */
-    lcd.setCursor(15, 0);
-    lcd.print("x");
-    // oled.drawString(9, 0, "x");
+    oled.drawString(15, 3, "x");
     delay(1000);
   }
 
+  oled.drawString(0, 1, "Sensor: ");
+  oled.drawString(0, 2, "Thresh: ");
+  oled.drawString(0, 3, "Active: ");
   taskOne.onRun(taskOneFunc);
   taskOne.setInterval(1000);   // call taskOne every 1000 ms
 }
