@@ -12,7 +12,6 @@
 #include <Thread.h>
 #include <SPI.h>
 #include <SD.h>
-
 #include <Wire.h>
 
 // #include "Adafruit_Sensor.h"
@@ -33,6 +32,7 @@
 #define ILLUMINANCE_THR   (500)   /* Absolute threshold for CdS cell */
 #define BEAM_OFF_DELTA    (100)   /* CdS cell illuminance delta for 'Torch Beam Off' state detection */
 #define ILLUMINANCE_DARK  (1000)  /* Value for background noise */
+#define SD_LOG_BUFFER_LEN (78)    /* String buffer length for SD log file */
 // #define HIGH            (1)
 // #define LOW             (0)
 
@@ -97,6 +97,7 @@ void taskOneFunc(){
     static unsigned int  lcdTaskTimerVal = 0;
 
     int symbolPositionOffset = 0;                            /* For OLED display setCursor() */
+    char sdLogBuffer[SD_LOG_BUFFER_LEN];
 
     fullTaskTimerVal = fullTaskTimerStop - fullTaskTimerStart;
     logTaskTimerVal = logTaskTimerStop - logTaskTimerStart;
@@ -266,7 +267,14 @@ void taskOneFunc(){
     
     if(logAsklitt)
     {
-      //logAsklitt.print(logStringFile);
+      sprintf(sdLogBuffer, "%04d/%02d/%02d_%02d:%02d:%02d %4d %6d %d %d %4d %4d %4d %4d \n"
+          , year, mnth, day, hour, minu, seco
+          , sensorValue, activeTimeProgressInd
+          , previousState, currentState, dynamicIlluminanceThr
+          , fullTaskTimerVal, logTaskTimerVal, lcdTaskTimerVal
+          );
+      // logAsklitt.print(logStringFile);
+      logAsklitt.print(sdLogBuffer);
       logAsklitt.close();
     }
     else
@@ -301,7 +309,8 @@ void taskOneFunc(){
 
   // Serial.print(logString);
   // Serial.print(logStringFile);
-  // Serial.print(seco);
+  
+  Serial.print(sdLogBuffer);
 
   previousSensorValue = sensorValue;
   previousDynamicThr = dynamicIlluminanceThr;
@@ -392,8 +401,8 @@ void setup()
   logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
   if(logAsklitt)
   {
-    logAsklitt.print("--- Starting new log entry ---\n");
-    logAsklitt.print("Time, Light_sensor_value, Active_time_(sec), Previous_state, Current_state, startTimer, stopTimer, dynamicIlluminanceThr, FullTask(ms), SDlogTask(ms), 2xLcdTaskTimerVal(ms)\n");
+    logAsklitt.print(F("--- Starting new log entry ---\n"));
+    logAsklitt.print(F("Time, Light_sensor_value, Active_time_(sec), Previous_state, Current_state, dynamicIlluminanceThr, FullTask(ms), SDlogTask(ms), 2xLcdTaskTimerVal(ms)\n"));
     logAsklitt.close();
   }
   else
