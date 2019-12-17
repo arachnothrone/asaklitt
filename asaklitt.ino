@@ -33,6 +33,7 @@
 #define BEAM_OFF_DELTA    (100)   /* CdS cell illuminance delta for 'Torch Beam Off' state detection */
 #define ILLUMINANCE_DARK  (1000)  /* Value for background noise */
 #define SD_LOG_BUFFER_LEN (78)    /* String buffer length for SD log file */
+#define SD_LOG_FILE_NAME_LEN  (13)  
 // #define HIGH            (1)
 // #define LOW             (0)
 
@@ -40,7 +41,8 @@
  * Module globals
  */
 
-static String   GV_LogFileName = "asddhhmm.txt";    /* File name format: "asDDHHMM.txt" -> asaklitt, day, hours, minutes */
+//static String   GV_LogFileName = "asddhhmm.txt";    /* File name format: "asDDHHMM.txt" -> asaklitt, day, hours, minutes */
+static char     GV_LogFileName[SD_LOG_FILE_NAME_LEN] = "asddhhmm.txt";
 static bool     GV_LogFileErrorIndicator = false;
 
 //const char someString[10] PROGMEM;
@@ -275,13 +277,13 @@ void taskOneFunc(){
           );
       // logAsklitt.print(logStringFile);
       logAsklitt.print(sdLogBuffer);
-      logAsklitt.close();
     }
     else
     {
       /* Error indicator */
       oled.drawString(15, 3, "*");
     }
+    logAsklitt.close();
   }
   logTaskTimerStop = millis();
 
@@ -392,12 +394,13 @@ void setup()
   int hh = now.hour();
   int mm = now.minute();
   // int sc = now.second();
-  GV_LogFileName = String("as") + 
-    + (dd < 10 ? "0" : "") + dd
-    + (hh < 10 ? "0" : "") + hh
-    + (mm < 10 ? "0" : "") + mm 
-  //  + (sc < 10 ? "0" : "") + sc
-    + ".txt";
+  // GV_LogFileName = String("as") + 
+  //   + (dd < 10 ? "0" : "") + dd
+  //   + (hh < 10 ? "0" : "") + hh
+  //   + (mm < 10 ? "0" : "") + mm 
+  // //  + (sc < 10 ? "0" : "") + sc
+  //   + ".txt";
+  sprintf(GV_LogFileName, "as%02d%02d%02d.txt", dd, hh, mm);
   logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
   if(logAsklitt)
   {
