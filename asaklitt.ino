@@ -263,6 +263,7 @@ void taskOneFunc(){
   //   + "\n";
   
   logTaskTimerStart = millis();
+
   if (GV_LogFileErrorIndicator != true)
   {
     logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
@@ -277,13 +278,14 @@ void taskOneFunc(){
           );
       // logAsklitt.print(logStringFile);
       logAsklitt.print(sdLogBuffer);
+      logAsklitt.close();
     }
     else
     {
       /* Error indicator */
       oled.drawString(15, 3, "*");
     }
-    logAsklitt.close();
+    //logAsklitt.close();
   }
   logTaskTimerStop = millis();
 
@@ -312,7 +314,7 @@ void taskOneFunc(){
   // Serial.print(logString);
   // Serial.print(logStringFile);
   
-  Serial.print(sdLogBuffer);
+  //Serial.print(sdLogBuffer);
 
   previousSensorValue = sensorValue;
   previousDynamicThr = dynamicIlluminanceThr;
@@ -329,9 +331,14 @@ void sdCardProgram()
 
   oled.drawString(0, 0, "SD Card Init...");
 
-  if (!card.init(SPI_HALF_SPEED, 4))
+  if (!card.init(SPI_HALF_SPEED, SD_CHIP_SELECT_PIN))  // SPI_HALF_SPEED, 4    SPI_FULL_SPEED SD_CHIP_SELECT_PIN
   {
     oled.drawString(0, 1, "SD Init Failed.");
+    char sdErrCode = card.errorCode();
+    char sdErrData = card.errorData();
+    oled.drawString(0, 2, sdErrCode);
+    oled.drawString(0, 3, sdErrData);
+    delay(1000);
   }
   else
   {
@@ -351,7 +358,7 @@ void sdCardProgram()
       cardType = "SDHC";
       break;
     default:
-      cardType = "??";
+      cardType = "--";
   }
   oled.drawString(0, 2, "Card Type: ");
   oled.setCursor(11, 2);
@@ -400,8 +407,9 @@ void setup()
   //   + (mm < 10 ? "0" : "") + mm 
   // //  + (sc < 10 ? "0" : "") + sc
   //   + ".txt";
-  sprintf(GV_LogFileName, "as%02d%02d%02d.txt", dd, hh, mm);
-  logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
+  //sprintf(GV_LogFileName, "as%02d%02d%02d.txt", dd, hh, mm);
+  //logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
+  logAsklitt = SD.open("lgfile.txt", FILE_WRITE);
   if(logAsklitt)
   {
     logAsklitt.print(F("--- Starting new log entry ---\n"));
