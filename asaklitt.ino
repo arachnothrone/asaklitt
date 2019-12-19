@@ -189,27 +189,7 @@ void taskOneFunc(){
     oled.print(sensorValue);          /* light sensor value */
     lcdTaskTimerStop = millis();
 
-  // /* Prepare the log strings (for Serial and SD card logs */
-  // // ardprintf("test %d %l %c %s %f", l, k, s, j, f);
-  // String logString = String("Time: ") 
-  //   + (year < 10 ? "0" : ""  ) + year
-  //   + (mnth < 10 ? "/0" : "/") + mnth
-  //   + (day  < 10 ? "/0" : "/") + day
-  //   + (hour < 10 ? " 0" : " ") + hour
-  //   + (minu < 10 ? ":0" : ":") + minu 
-  //   + (seco < 10 ? ":0" : ":") + seco + ","
-  //   + " Light sensor value: " + sensorValue 
-  //   + " Active time (sec): " + activeTimeProgressInd
-  //   + " Previous state: " + previousState 
-  //   + " Current state: " + currentState 
-  //   + " startTimer=" + startTimer 
-  //   + " stopTimer=" + stopTimer 
-  //   + " dynamicIlluminanceThr=" + dynamicIlluminanceThr 
-  //   + " FullTask(ms): " + fullTaskTimerVal 
-  //   + " SDlogTask(ms): " + logTaskTimerVal 
-  //   + " 2xlcdTaskTimerVal(ms): " + lcdTaskTimerVal 
-  //   + "\n";
-
+  /* Prepare the log strings (for Serial and SD card logs */
   Serial.print(F("Time: "));
   Serial.print(year);
   Serial.print(mnth < 10 ? F("/0") : F("/"));
@@ -243,31 +223,12 @@ void taskOneFunc(){
   Serial.print(F(" 2xlcdTaskTimerVal(ms)="));
   Serial.println(lcdTaskTimerVal);
   
-  // String logStringFile = String("TS:")
-  //   + year
-  //   + (mnth < 10 ? "/0" : "/") + mnth
-  //   + (day  < 10 ? "/0" : "/") + day
-  //   + (hour < 10 ? "_0" : "_") + hour
-  //   + (minu < 10 ? ":0" : ":") + minu 
-  //   + (seco < 10 ? ":0" : ":") + seco + " " 
-  //   + sensorValue + " "
-  //   + activeTimeProgressInd + " " 
-  //   + previousState + " "
-  //   + currentState + " "
-  //   + startTimer + " "
-  //   + stopTimer + " "
-  //   + dynamicIlluminanceThr + " "
-  //   + fullTaskTimerVal + " "
-  //   + logTaskTimerVal + " "
-  //   + lcdTaskTimerVal  + " "
-  //   + "\n";
-  
   logTaskTimerStart = millis();
 
   if (GV_LogFileErrorIndicator != true)
   {
-    logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
-    
+    logAsklitt = SD.open(GV_LogFileName, FILE_WRITE); //O_APPEND
+    // logAsklitt = SD.open("lgfile.txt", FILE_WRITE);
     if(logAsklitt)
     {
       sprintf(sdLogBuffer, "%04d/%02d/%02d_%02d:%02d:%02d %4d %6d %d %d %4d %4d %4d %4d \n"
@@ -276,16 +237,20 @@ void taskOneFunc(){
           , previousState, currentState, dynamicIlluminanceThr
           , fullTaskTimerVal, logTaskTimerVal, lcdTaskTimerVal
           );
-      // logAsklitt.print(logStringFile);
+      //logAsklitt.print(logStringFile);
       logAsklitt.print(sdLogBuffer);
-      logAsklitt.close();
+      // logAsklitt.flush();
+      // logAsklitt.close();
     }
     else
     {
       /* Error indicator */
       oled.drawString(15, 3, "*");
+      oled.setCursor(11, 2);
+      oled.print(logAsklitt);
+      Serial.println(logAsklitt.availableForWrite());
     }
-    //logAsklitt.close();
+    logAsklitt.close();
   }
   logTaskTimerStop = millis();
 
@@ -313,8 +278,6 @@ void taskOneFunc(){
 
   // Serial.print(logString);
   // Serial.print(logStringFile);
-  
-  //Serial.print(sdLogBuffer);
 
   previousSensorValue = sensorValue;
   previousDynamicThr = dynamicIlluminanceThr;
@@ -336,9 +299,14 @@ void sdCardProgram()
     oled.drawString(0, 1, "SD Init Failed.");
     char sdErrCode = card.errorCode();
     char sdErrData = card.errorData();
-    oled.drawString(0, 2, sdErrCode);
-    oled.drawString(0, 3, sdErrData);
-    delay(1000);
+    // oled.drawString(0, 2, sdErrCode);
+    // oled.drawString(0, 3, sdErrData);
+    oled.drawString(0, 2, "ErrCode/Data:");
+    oled.setCursor(0, 3);
+    oled.print(sdErrCode);
+    oled.setCursor(5, 3);
+    oled.print(sdErrData);
+    delay(3000);
   }
   else
   {
@@ -372,15 +340,15 @@ void sdCardProgram()
   else {
     oled.clear();
     uint32_t volumeSize;
-    volumeSize = volume.blocksPerCluster();    // clusters are collections of blocks
-    volumeSize *= volume.clusterCount();       // we'll have a lot of clusters
-    volumeSize /= 2;                           // SD card blocks are always 512 bytes (2 blocks are 1KB)
+    volumeSize = volume.blocksPerCluster();
+    volumeSize *= volume.clusterCount();
+    volumeSize /= 2;                           /* One SD card block is 512 bytes */
     oled.print("Vol. size (Kb):\n");
     oled.print(volumeSize);
     delay(1000);
     oled.clear();
 
-    SD.begin();
+    SD.begin(SPI_HALF_SPEED, SD_CHIP_SELECT_PIN);
   }
 }
 
@@ -400,21 +368,18 @@ void setup()
   int dd = now.day();
   int hh = now.hour();
   int mm = now.minute();
-  // int sc = now.second();
-  // GV_LogFileName = String("as") + 
-  //   + (dd < 10 ? "0" : "") + dd
-  //   + (hh < 10 ? "0" : "") + hh
-  //   + (mm < 10 ? "0" : "") + mm 
-  // //  + (sc < 10 ? "0" : "") + sc
-  //   + ".txt";
-  //sprintf(GV_LogFileName, "as%02d%02d%02d.txt", dd, hh, mm);
-  //logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
-  logAsklitt = SD.open("lgfile.txt", FILE_WRITE);
+  sprintf(GV_LogFileName, "as%02d%02d%02d.txt", dd, hh, mm);
+  oled.setCursor(0, 0);
+  oled.print(GV_LogFileName);
+  delay(3000);
+  
+  logAsklitt = SD.open(GV_LogFileName, FILE_WRITE);
+  // logAsklitt = SD.open("lgfile.txt", FILE_WRITE);
   if(logAsklitt)
   {
     logAsklitt.print(F("--- Starting new log entry ---\n"));
     logAsklitt.print(F("Time, Light_sensor_value, Active_time_(sec), Previous_state, Current_state, dynamicIlluminanceThr, FullTask(ms), SDlogTask(ms), 2xLcdTaskTimerVal(ms)\n"));
-    logAsklitt.close();
+    // logAsklitt.close();
   }
   else
   {
@@ -427,6 +392,7 @@ void setup()
     oled.drawString(15, 3, "x");
     delay(1000);
   }
+  logAsklitt.close();
 
   oled.drawString(0, 1, "Sensor: ");
   oled.drawString(0, 2, "Thresh: ");
