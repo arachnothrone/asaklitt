@@ -55,6 +55,7 @@ static bool     GV_LogFileErrorIndicator = false;
 RTClib RTC;
 
 Thread taskOne = Thread();
+Thread taskTwo = Thread();
 
 File logAsklitt;
 
@@ -75,7 +76,8 @@ int getNumDigits(int* num)
     *num < 10000 ? 4 : 5;
 }
 
-void taskOneFunc(){
+void taskOneFunc()
+{
     static bool previousState = LOW;                        /* Detected torch beam state (HIGH = on, LOW = off */
     static bool currentState = LOW;
     static int activeTime = 0;                              /* Overall time of the beam in HIGH state */
@@ -284,6 +286,12 @@ void taskOneFunc(){
   fullTaskTimerStop = millis();
 }
 
+void taskTwoFunc()
+{
+  //SdFile
+
+}
+
 void sdCardProgram()
 {
   // SD reader is connected to SPI pins (MISO/MOSI/SCK/CS, 5V pwr)
@@ -399,10 +407,15 @@ void setup()
   oled.drawString(0, 3, "Active: ");
   taskOne.onRun(taskOneFunc);
   taskOne.setInterval(1000);   // call taskOne every 1000 ms
+  taskTwo.onRun(taskTwoFunc);
+  taskTwo.setInterval(10);
 }
 
 void loop()
 {  
   if (taskOne.shouldRun())
     taskOne.run();
+
+  if (taskTwo.shouldRun())
+    tasktwo.run();
 }
