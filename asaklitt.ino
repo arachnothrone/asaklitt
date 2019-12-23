@@ -45,6 +45,15 @@
 static char     GV_LogFileName[SD_LOG_FILE_NAME_LEN] = "asddhhmm.txt";
 static bool     GV_LogFileErrorIndicator = false;
 
+typedef struct
+{
+  unsigned int cdsCellValue;
+  unsigned int timeInterval;
+} Read_Sensor_T;
+
+static Read_Sensor_T valuesTable[1000] = {0};
+
+
 //const char someString[10] PROGMEM;
 
 /**
@@ -300,6 +309,12 @@ void taskTwoFunc()
   Serial.print(F(" "));
   Serial.println(fullTaskTimerVal);
   fullTaskTimerStop = micros();
+}
+
+void taskTreFunc()
+{
+  /* Not using Thread module, work in the loop as fast as possible */
+
 }
 
 void sdCardProgram()
