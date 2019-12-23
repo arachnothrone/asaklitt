@@ -288,8 +288,18 @@ void taskOneFunc()
 
 void taskTwoFunc()
 {
-  //SdFile
-
+  /* Execution time analysis */
+  static unsigned long  fullTaskTimerStart = 0;      /* Microseconds */
+  static unsigned long  fullTaskTimerStop = 0;
+  static unsigned int   fullTaskTimerVal = 0;
+  
+  fullTaskTimerVal = fullTaskTimerStop - fullTaskTimerStart;
+  fullTaskTimerStart = micros();
+  unsigned int sensorValue = analogRead(A0);
+  Serial.print(sensorValue);
+  Serial.print(F(" "));
+  Serial.println(fullTaskTimerVal);
+  fullTaskTimerStop = micros();
 }
 
 void sdCardProgram()
@@ -408,14 +418,14 @@ void setup()
   taskOne.onRun(taskOneFunc);
   taskOne.setInterval(1000);   // call taskOne every 1000 ms
   taskTwo.onRun(taskTwoFunc);
-  taskTwo.setInterval(10);
+  taskTwo.setInterval(1);
 }
 
 void loop()
 {  
-  if (taskOne.shouldRun())
-    taskOne.run();
+  // if (taskOne.shouldRun())
+  //   taskOne.run();
 
   if (taskTwo.shouldRun())
-    tasktwo.run();
+    taskTwo.run();
 }
