@@ -10,6 +10,9 @@ sensorUeLow
 execTime, us
 sensorUeFullBright
 asaFrontBlink
+Max
+next max, after 8 ms
+Ikea 400 lm
 ikea1_crane
 </string>
 	<key>Text</key>
