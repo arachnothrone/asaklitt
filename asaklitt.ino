@@ -98,7 +98,6 @@ void taskOneFunc(){
     static unsigned long lcdTaskTimerStop = 0;
     static unsigned int  lcdTaskTimerVal = 0;
 
-    int symbolPositionOffset = 0;                            /* For OLED display setCursor() */
     char sdLogBuffer[SD_LOG_BUFFER_LEN];
 
     fullTaskTimerVal = fullTaskTimerStop - fullTaskTimerStart;
@@ -255,26 +254,19 @@ void taskOneFunc(){
   logTaskTimerStop = millis();
 
   /* Display time and date */
-  // TODO: Add correct switching from 59 to 00, and MSB for values = 0-9 
-  //oled.drawString(0, 0, "              ");
-  symbolPositionOffset = hour < 10 ? 1 : 0;
-  oled.setCursor(0 + symbolPositionOffset, 0);
-  oled.print(hour);
+  printRtcValueOnDisplay(0, 0, hour);
   oled.print(":");
-  symbolPositionOffset = minu < 10 ? 1 : 0;
-  oled.setCursor(3 + symbolPositionOffset, 0);
-  oled.print(minu);
+
+  printRtcValueOnDisplay(3, 0, minu);
   oled.print(":");
-  symbolPositionOffset = seco < 10 ? 1 : 0;
-  oled.setCursor(6 + symbolPositionOffset, 0);
-  oled.print(seco);
-  symbolPositionOffset = day < 10 ? 1 : 0;
-  oled.setCursor(9 + symbolPositionOffset, 0);
-  oled.print(day);
+
+  printRtcValueOnDisplay(6, 0, seco);
+  oled.print(" ");
+  
+  printRtcValueOnDisplay(9, 0, day);
   oled.print("-");
-  symbolPositionOffset = mnth < 10 ? 1 : 0;
-  oled.setCursor(12 + symbolPositionOffset, 0);
-  oled.print(mnth);
+
+  printRtcValueOnDisplay(12, 0, mnth);
 
   // Serial.print(logString);
   // Serial.print(logStringFile);
@@ -282,6 +274,20 @@ void taskOneFunc(){
   previousSensorValue = sensorValue;
   previousDynamicThr = dynamicIlluminanceThr;
   fullTaskTimerStop = millis();
+}
+
+/**
+ * Print Hour, Minute, Second, Date or Month to occupy 2 decimal places
+ * (when value is "1" -> print "01")
+ */
+void printRtcValueOnDisplay(uint8_t xPos, uint8_t yPos, uint8_t value)
+{
+  oled.setCursor(xPos, yPos);
+  if (value < 10)
+  {
+    oled.print("0");
+  }
+  oled.print(value);
 }
 
 void sdCardProgram()
@@ -399,6 +405,8 @@ void setup()
   oled.drawString(0, 3, "Active: ");
   taskOne.onRun(taskOneFunc);
   taskOne.setInterval(1000);   // call taskOne every 1000 ms
+
+  //oled.clear();
 }
 
 void loop()
@@ -406,3 +414,7 @@ void loop()
   if (taskOne.shouldRun())
     taskOne.run();
 }
+
+// -------------------------
+// Sketch uses 25396 bytes (88%) of program storage space. Maximum is 28672 bytes.
+// Global variables use 1601 bytes (62%) of dynamic memory, leaving 959 bytes for local variables. Maximum is 2560 bytes.
